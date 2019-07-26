@@ -1,0 +1,17 @@
+[package]
+name = "one_time_pad"
+version = "0.1.0"
+authors = ["Daniel Boline <ddboline@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+rayon = "1.1"
+rand = "0.7"
+spin="0.5"
+pyo3 = {version = "0.7", features = ["extension-module"], default-features = false}
+pyo3cls = "0.7"
+mashup = "0.1"
+
+[lib]
+name = "one_time_pad"
+crate-type = ["cdylib"]
