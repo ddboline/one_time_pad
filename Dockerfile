@@ -13,10 +13,10 @@ RUN apt-get update && \
 
 RUN pip3 install setuptools-rust
 
-WORKDIR /pyo3
+WORKDIR /one_time_pad
 
-ADD Cargo.toml /pyo3
-ADD src /pyo3/src
-ADD one_time_pad /pyo3/one_time_pad
-ADD MANIFEST.in /pyo3
-ADD setup.py /pyo3
+ADD Cargo.toml /one_time_pad
+ADD src /one_time_pad/src
+ADD one_time_pad /one_time_pad/one_time_pad
+ADD MANIFEST.in /one_time_pad
+ADD setup.py /one_time_pad

@@ -1,4 +1,4 @@
-// #![feature(specialization, const_fn)]
+#![feature(specialization, const_fn)]
 
 // extern crate rand;
 // extern crate rayon;
@@ -6,10 +6,11 @@
 #[macro_use]
 extern crate pyo3cls;
 
-use pyo3::{PyRawObject, PyResult, Python};
 use pyo3::types::PyModule;
+use pyo3::{PyRawObject, PyResult, Python};
 use rand::distributions::{Distribution, Uniform};
 use rayon::prelude::*;
+use std::collections::HashSet;
 
 struct OneTimePad {
     valid_chars: Vec<char>,
@@ -28,11 +29,13 @@ impl OneTimePad {
 
     fn set_encrypt_key(&mut self, encrypt_key: &str) {
         let mut new_encrypt_key = Vec::new();
-        let mut missing_chars: Vec<_> = extra_chars.chars().collect();
+        let mut missing_chars = HashSet::new();
         for chr in encrypt_key.chars() {
             match self.valid_chars.binary_search(&chr) {
                 Ok(idx) => new_encrypt_key.push(idx),
-                Err(_) => missing_chars.push(chr),
+                Err(_) => {
+                    missing_chars.insert(chr);
+                }
             }
         }
         if missing_chars.len() > 0 {
@@ -74,14 +77,17 @@ impl OneTimePad {
     }
 
     fn get_key_str(&self) -> String {
-        get_string(&self.encrypt_key
-            .par_iter()
-            .map(|&k| self.valid_chars[k as usize])
-            .collect::<Vec<char>>())
+        get_string(
+            &self
+                .encrypt_key
+                .par_iter()
+                .map(|&k| self.valid_chars[k as usize])
+                .collect::<Vec<char>>(),
+        )
     }
 }
 
-fn get_upper_lower_chars() -> Vec<char> {
+fn get_upper_lower_chars() -> HashSet<char> {
     let (a, b): (Vec<_>, Vec<_>) = (0..26)
         .into_par_iter()
         .map(|val| {
@@ -91,20 +97,14 @@ fn get_upper_lower_chars() -> Vec<char> {
             )
         })
         .unzip();
-    let mut valid_chars: Vec<_> = a.into_par_iter().chain(b.into_par_iter()).collect();
-    valid_chars.sort();
+    let valid_chars: HashSet<_> = a.into_par_iter().chain(b.into_par_iter()).collect();
     valid_chars
 }
 
 fn find_valid_characters(input: &str) -> Vec<char> {
     let mut valid_chars = get_upper_lower_chars();
-
-    for ch in input.chars() {
-        match valid_chars.binary_search(&ch) {
-            Ok(_) => (),
-            Err(idx) => valid_chars.insert(idx, ch),
-        }
-    }
+    valid_chars.extend(input.chars());
+    let mut valid_chars: Vec<_> = valid_chars.into_iter().collect();
     valid_chars.sort();
     valid_chars
 }
@@ -170,7 +170,8 @@ mod tests {
             .into_iter()
             .map(|&x| x as usize)
             .collect();
-        let valid_chars = otp.valid_chars
+        let valid_chars = otp
+            .valid_chars
             .iter()
             .map(|c| c.to_string())
             .collect::<Vec<_>>()
