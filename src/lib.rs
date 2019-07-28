@@ -26,6 +26,24 @@ impl OneTimePad {
         }
     }
 
+    fn set_encrypt_key(&mut self, encrypt_key: &str) {
+        let mut new_encrypt_key = Vec::new();
+        let mut missing_chars: Vec<_> = extra_chars.chars().collect();
+        for chr in encrypt_key.chars() {
+            match self.valid_chars.binary_search(&chr) {
+                Ok(idx) => new_encrypt_key.push(idx),
+                Err(_) => missing_chars.push(chr),
+            }
+        }
+        if missing_chars.len() > 0 {
+            self.valid_chars.extend(missing_chars);
+            self.valid_chars.sort();
+            self.set_encrypt_key(encrypt_key)
+        } else {
+            self.encrypt_key = new_encrypt_key;
+        }
+    }
+
     fn decrypt_key(&self) -> Vec<usize> {
         let nchr = self.valid_chars.len();
         self.encrypt_key.par_iter().map(|&k| nchr - k).collect()
@@ -113,9 +131,9 @@ struct PyOneTimePad {
 #[pymethods]
 impl PyOneTimePad {
     #[new]
-    fn new(obj: &PyRawObject, input: String) {
+    fn new(obj: &PyRawObject, keysize: usize, extra_chars: String) {
         obj.init(PyOneTimePad {
-            pad: OneTimePad::new(input.len(), &input),
+            pad: OneTimePad::new(keysize, &extra_chars),
         })
     }
 
@@ -129,6 +147,10 @@ impl PyOneTimePad {
 
     fn get_key_str(&self) -> PyResult<String> {
         Ok(self.pad.get_key_str())
+    }
+
+    fn set_encrypt_key(&mut self, encrypt_key: String) -> PyResult<()> {
+        Ok(self.pad.set_encrypt_key(&encrypt_key))
     }
 }
 
